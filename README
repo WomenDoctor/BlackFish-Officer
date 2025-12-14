@@ -1,0 +1,35 @@
+BlackFish Officer Better Officer/Sergent Orders
+
+**Script Description**
+You will never need to open the officer menu again. This script allows you to activate officer orders with a single key press via macros. You will never get killed because you forgot to close the officer menu, this also allows you attack, block, and switch weapons to automatically cancel an order. Fire at will is automatically enabled when placing a line. AGS didn't let us bind orders to keys, SO I DID IT ANYWAY. forsen8Baseg 
+
+Hotkeys
+
+Q  = Activates charge buff
+
+Waluigi reminds you when your charge ability is ready to use again
+Attempting to activate charge buff while under cooldown will make a generic windows error sound
+
+Officer Buff= You significantly increase melee damage and reduce damage by firearms for 20 seconds
+
++Sergeant buff increase run speed of your allies by 10%. 
+
+T  = Activates line placement tool
+
+you can now aim, shoot, and switch weapons in line placement mode! 
+Left click places line and automatically activates fire at will order.
+
+Press Q while holding right click = Places Officer Pointer
+
+Aim your pistol at enemy tents then press q to make a pointer!
+
+*******HOW TO USE*******
+*this script does not modify or use any Holdfast game files and should not be placed in the Holdfast install folder.*
+Download BlackFish OfficersSetup.exe and click install
+The mod will automatically run when Holdfast is running.
+
+Supports resolutions
+3840x2160p
+2560x1440p
+2560x1080p
+1920x1080p
