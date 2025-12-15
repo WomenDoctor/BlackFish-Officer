@@ -1,0 +1,22 @@
+{
+  "remove": [
+    {"actionId": 61, "elementIdentifierId": 29},
+    {"actionId": 62, "elementIdentifierId": 30},
+    {"actionId": 64, "elementIdentifierId": 32},
+    {"actionId": 65, "elementIdentifierId": 33},
+    {"actionId": 86, "elementIdentifierId": 29},
+    {"actionId": 87, "elementIdentifierId": 30},
+    {"actionId": 89, "elementIdentifierId": 32},
+    {"actionId": 90, "elementIdentifierId": 33}
+  ],
+  "add": [
+    {"actionId": 61, "elementIdentifierId": 0},
+    {"actionId": 62, "elementIdentifierId": 0},
+    {"actionId": 64, "elementIdentifierId": 0},
+    {"actionId": 65, "elementIdentifierId": 0},
+    {"actionId": 86, "elementIdentifierId": 0},
+    {"actionId": 87, "elementIdentifierId": 0},
+    {"actionId": 89, "elementIdentifierId": 0},
+    {"actionId": 90, "elementIdentifierId": 0}
+  ]
+}

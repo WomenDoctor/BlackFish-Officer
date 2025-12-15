@@ -1,0 +1,23 @@
+NsJSON Plugin Installation Instructions
+========================================
+
+To use the NsJSON plugin for JSON manipulation (replaces PowerShell):
+
+1. Download NsJSON plugin from:
+   https://nsis.sourceforge.io/NsJSON_plug-in
+
+2. Extract the downloaded archive
+
+3. Copy the following files to this directory:
+   - nsJSON.dll (Unicode version from Plugins\x86-unicode\ folder)
+     → C:\BlackFishOffcier\Needed to compile installer\Plugins\nsJSON.dll
+   
+   - NsJSON.nsh (if included in the package)
+     → C:\BlackFishOffcier\Needed to compile installer\Plugins\NsJSON.nsh
+
+4. The installer uses Unicode (Unicode True), so use the Unicode version of the DLL
+
+5. After copying the files, the installer will automatically detect and use the plugin
+
+Note: The plugin is required for keybinds update functionality without PowerShell.
+

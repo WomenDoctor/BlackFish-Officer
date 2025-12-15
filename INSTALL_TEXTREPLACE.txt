@@ -1,0 +1,25 @@
+TextReplace Plugin Installation Instructions
+============================================
+
+To use the TextReplace plugin (recommended for UTF-16 file handling):
+
+1. Download TextReplace plugin v1.5 from:
+   https://nsis.sourceforge.io/TextReplace_plugin
+
+2. Extract the ZIP file
+
+3. Copy files:
+   - TextReplace.dll → C:\BlackFishOffcier\Needed to compile installer\Plugins\
+   - TextReplace.nsh → C:\BlackFishOffcier\Needed to compile installer\Plugins\
+
+4. The installer will automatically detect and use the plugin if these files are present.
+
+Benefits:
+- Proper UTF-16 encoding support (no corruption)
+- No PowerShell dependency
+- Faster and more reliable
+- Reduces antivirus false positives
+
+If the plugin is not installed, the installer will fall back to a PowerShell-based
+method that also handles UTF-16 correctly.
+

@@ -1,0 +1,248 @@
+    ; ========================================================================
+    ; STEP 1: Find the keybinds file
+    ; ========================================================================
+    DetailPrint "Step 1: Finding keybinds file..."
+    
+    ; Build config path
+    ReadEnvStr $R3 "USERPROFILE"
+    ${If} $R3 == ""
+        DetailPrint "ERROR: USERPROFILE environment variable is empty"
+        StrCpy $KeybindsError 1
+        Goto Cleanup
+    ${EndIf}
+    
+    StrCpy $R4 "$R3\AppData\LocalLow\Anvil Games Studio\Holdfast NaW\config"
+    
+    ; Verify directory exists
+    IfFileExists "$R4" 0 ConfigDirNotFound
+    DetailPrint "Config directory found: $R4"
+    Goto ConfigDirFound
+    
+    ConfigDirNotFound:
+        DetailPrint "ERROR: Config directory not found: $R4"
+        StrCpy $KeybindsError 1
+        Goto Cleanup
+    
+    ConfigDirFound:
+    
+    ; Use Locate plugin to find *_Keybinds.ini files
+    ClearErrors
+    ${locate::Open} "$R4" `/F=1 /D=0 /M=*_Keybinds.ini /B=1` $R5
+    
+    IfErrors LocateError 0
+    StrCmp $R5 0 LocateError 0
+    
+    ; Get the first file
+    ClearErrors
+    ${locate::Find} $R5 $1 $2 $3 $4 $5 $6
+    
+    ${locate::Close} $R5
+    ${locate::Unload}
+    
+    ${If} ${Errors}
+    ${OrIf} $1 == ""
+        LocateError:
+            DetailPrint "ERROR: Keybinds.ini file not found"
+            StrCpy $KeybindsError 1
+            Goto Cleanup
+    ${EndIf}
+    
+    ; $1 now contains the full path to the keybinds file
+    StrCpy $R8 "$1"
+    DetailPrint "Found keybinds file: $R8"
+    
+    ; ========================================================================
+    ; STEP 2: Create backup
+    ; ========================================================================
+    DetailPrint "Step 2: Creating backup..."
+    
+    ; Extract filename
+    Push "$R8"
+    Call GetFileName
+    Pop $R3
+    
+    ; Create backup filename with counter
+    StrCpy $R4 "001"
+    StrCpy $R6 0  ; Loop safety counter
+    ${Do}
+        StrCpy $R5 "$9\$R3.backup_$R4"
+        IfFileExists "$R5" 0 BackupNameFound
+        IntOp $R4 $R4 + 1
+        IntFmt $R4 "%03d" $R4
+        IntOp $R6 $R6 + 1
+        ${If} $R6 > 1000
+            ; Safety: prevent infinite loop
+            DetailPrint "ERROR: Too many backup files, using timestamp"
+            GetTempFileName $R5
+            StrCpy $R5 "$9\$R3.backup_$R5"
+            ${Break}
+        ${EndIf}
+        IntCmp $R4 999 BackupNameFound 0 BackupNameFound
+    ${Loop}
+    BackupNameFound:
+    
+    ; Copy file to backup location
+    ClearErrors
+    CopyFiles "$R8" "$R5"
+    IfErrors 0 BackupSuccess
+        DetailPrint "WARNING: Backup failed, continuing anyway"
+        Goto BackupDone
+    BackupSuccess:
+        DetailPrint "Backup created: $R5"
+        ; Store backup path in R9 for cleanup
+        StrCpy $R9 "$R5"
+    BackupDone:
+    
+    ; ========================================================================
+    ; STEP 3: Verify changes file exists
+    ; ========================================================================
+    DetailPrint "Step 3: Verifying changes file..."
+    
+    GetFullPathName $R7 "$TEMP"
+    StrCpy $R7 "$R7\keybinds_changes.json"
+    
+    IfFileExists "$R7" ChangesFileExists ChangesFileNotFound
+    
+    ChangesFileNotFound:
+        DetailPrint "ERROR: keybinds_changes.json not found at: $R7"
+        StrCpy $KeybindsError 1
+        Goto Cleanup
+    
+    ChangesFileExists:
+        DetailPrint "Changes file found: $R7"
+    
+    ; ========================================================================
+    ; STEP 4: Generate and execute PowerShell script
+    ; ========================================================================
+    DetailPrint "Step 4: Generating PowerShell script..."
+    
+    ; Create PowerShell script file
+    StrCpy $R0 "$TEMP\keybind_edit.ps1"
+    FileOpen $0 "$R0" w
+    IfErrors ScriptCreateFailed
+    
+    ; Write PowerShell script - use $$ for literal $ in output
+    FileWrite $0 "try {$\r$\n"
+    FileWrite $0 "  $$keybindsFile = '$R8'$\r$\n"
+    FileWrite $0 "  $$changesFile = '$R7'$\r$\n"
+    FileWrite $0 "  $$keybinds = Get-Content $$keybindsFile -Raw -Encoding UTF8 | ConvertFrom-Json$\r$\n"
+    FileWrite $0 "  $$changes = Get-Content $$changesFile -Raw -Encoding UTF8 | ConvertFrom-Json$\r$\n"
+    FileWrite $0 "  $$controllerMap = $$keybinds.ControllerMaps | Where-Object { $$_.ID -eq 0 }$\r$\n"
+    FileWrite $0 "  if ($$controllerMap) {$\r$\n"
+    FileWrite $0 "    $$keyboardData = $$controllerMap.KeyboardMapData | ConvertFrom-Json$\r$\n"
+    FileWrite $0 "    $$newButtonMaps = @()$\r$\n"
+    FileWrite $0 "    foreach ($$button in $$keyboardData.buttonMaps) {$\r$\n"
+    FileWrite $0 "      $$shouldRemove = $$false$\r$\n"
+    FileWrite $0 "      foreach ($$removeEntry in $$changes.remove) {$\r$\n"
+    FileWrite $0 "        if ($$button.actionId -eq $$removeEntry.actionId -and $$button.elementIdentifierId -eq $$removeEntry.elementIdentifierId) {$\r$\n"
+    FileWrite $0 "          $$shouldRemove = $$true$\r$\n"
+    FileWrite $0 "          break$\r$\n"
+    FileWrite $0 "        }$\r$\n"
+    FileWrite $0 "      }$\r$\n"
+    FileWrite $0 "      if (-not $$shouldRemove) {$\r$\n"
+    FileWrite $0 "        $$newButtonMaps += $$button$\r$\n"
+    FileWrite $0 "      }$\r$\n"
+    FileWrite $0 "    }$\r$\n"
+    FileWrite $0 "    foreach ($$addEntry in $$changes.add) {$\r$\n"
+    FileWrite $0 "      $$exists = $$false$\r$\n"
+    FileWrite $0 "      foreach ($$existing in $$newButtonMaps) {$\r$\n"
+    FileWrite $0 "        if ($$existing.actionId -eq $$addEntry.actionId -and $$existing.elementIdentifierId -eq $$addEntry.elementIdentifierId) {$\r$\n"
+    FileWrite $0 "          $$exists = $$true$\r$\n"
+    FileWrite $0 "          break$\r$\n"
+    FileWrite $0 "        }$\r$\n"
+    FileWrite $0 "      }$\r$\n"
+    FileWrite $0 "      if (-not $$exists) {$\r$\n"
+    FileWrite $0 "        $$newEntry = [PSCustomObject]@{$\r$\n"
+    FileWrite $0 "          actionCategoryId = 0$\r$\n"
+    FileWrite $0 "          actionId = $$addEntry.actionId$\r$\n"
+    FileWrite $0 "          elementType = 1$\r$\n"
+    FileWrite $0 "          elementIdentifierId = $$addEntry.elementIdentifierId$\r$\n"
+    FileWrite $0 "          axisRange = 0$\r$\n"
+    FileWrite $0 "          invert = $$false$\r$\n"
+    FileWrite $0 "          axisContribution = 0$\r$\n"
+    FileWrite $0 "          keyboardKeyCode = 0$\r$\n"
+    FileWrite $0 "          modifierKey1 = 0$\r$\n"
+    FileWrite $0 "          modifierKey2 = 0$\r$\n"
+    FileWrite $0 "          modifierKey3 = 0$\r$\n"
+    FileWrite $0 "          enabled = $$true$\r$\n"
+    FileWrite $0 "        }$\r$\n"
+    FileWrite $0 "        $$newButtonMaps += $$newEntry$\r$\n"
+    FileWrite $0 "      }$\r$\n"
+    FileWrite $0 "    }$\r$\n"
+    FileWrite $0 "    $$keyboardData.buttonMaps = $$newButtonMaps$\r$\n"
+    FileWrite $0 "    $$controllerMap.KeyboardMapData = ($$keyboardData | ConvertTo-Json -Compress -Depth 100)$\r$\n"
+    FileWrite $0 "    $$output = $$keybinds | ConvertTo-Json -Compress -Depth 100$\r$\n"
+    FileWrite $0 "    $$enc = New-Object System.Text.UTF8Encoding $$false$\r$\n"
+    FileWrite $0 "    [System.IO.File]::WriteAllText($$keybindsFile, $$output, $$enc)$\r$\n"
+    FileWrite $0 "  }$\r$\n"
+    FileWrite $0 "  exit 0$\r$\n"
+    FileWrite $0 "} catch {$\r$\n"
+    FileWrite $0 "  Write-Host $$_.Exception.Message$\r$\n"
+    FileWrite $0 "  exit 1$\r$\n"
+    FileWrite $0 "}$\r$\n"
+    
+    FileClose $0
+    
+    ; Execute PowerShell script
+    DetailPrint "Step 5: Executing PowerShell script..."
+    ExecWait 'powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$R0"' $0
+    
+    ; Clean up script
+    Delete "$R0"
+    
+    ; Check exit code
+    IntCmp $0 0 VerifySize ScriptFailed
+    
+    VerifySize:
+        ; Verify file size (should be 32559 bytes)
+        FileOpen $0 "$R8" r
+        IfErrors VerifyFailed
+        FileSeek $0 0 END $1
+        FileClose $0
+        IntCmp $1 32559 Success VerifyFailed
+    
+    Success:
+        DetailPrint "SUCCESS: Keybinds file updated successfully"
+        Goto Cleanup
+    
+    ScriptFailed:
+    VerifyFailed:
+        DetailPrint "ERROR: PowerShell script failed or file size mismatch (exit code: $0, size: $1)"
+        StrCpy $KeybindsError 1
+        Goto Cleanup
+    
+    ScriptCreateFailed:
+        DetailPrint "ERROR: Failed to create PowerShell script"
+        StrCpy $KeybindsError 1
+        Goto Cleanup
+    
+    Cleanup:
+        ; If error occurred, restore backup if it exists
+        ${If} $KeybindsError == 1
+            IfFileExists "$R9" 0 NoBackupInCleanup
+                ; Force delete original file first
+                Delete "$R8"
+                Sleep 50
+                ${If} ${FileExists} "$R8"
+                    System::Call 'kernel32::DeleteFileW(w "$R8") i .r0'
+                    Sleep 50
+                ${EndIf}
+                
+                ; Copy backup to original location
+                CopyFiles "$R9" "$R8"
+                ${If} ${FileExists} "$R8"
+                    Delete "$R9"
+                    DetailPrint "Restored backup file in cleanup due to error"
+                ${Else}
+                    DetailPrint "ERROR: Failed to restore backup file"
+                ${EndIf}
+            NoBackupInCleanup:
+        ${Else}
+            ; Success - clean up backup if it exists
+            IfFileExists "$R9" 0 +2
+                Delete "$R9"
+        ${EndIf}
+        
+        DetailPrint "Keybinds update function completed"
+FunctionEnd
+
