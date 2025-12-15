@@ -166,22 +166,22 @@ global resolutionData := Map(
         "aliveCheckY", 918,
         "officerX1", 1757,
         "officerY1", 867,
-        "officerColor1", 0x737572,
+        "officerColor1", [0x737572, 0x727472],
         "officerX2", 1757,
         "officerY2", 914,
-        "officerColor2", 0x848583,
+        "officerColor2", [0x848583, 0x838483],
         "officerBayonetX1", 1700,
         "officerBayonetY1", 923,
-        "officerBayonetColor1", 0x626161,
+        "officerBayonetColor1", [0x626161, 0x616061],
         "officerBayonetX2", 1706,
         "officerBayonetY2", 865,
-        "officerBayonetColor2", 0x5C5B5B,
+        "officerBayonetColor2", [0x5C5B5B, 0x5B5A5B],
         "sergentX1", 1758,
         "sergentY1", 868,
-        "sergentColor1", 0x757575,
+        "sergentColor1", [0x757575, 0x747475],
         "sergentX2", 1758,
         "sergentY2", 919,
-        "sergentColor2", 0x535253
+        "sergentColor2", [0x535253, 0x525153]
     )
 )
 
