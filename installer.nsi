@@ -33,7 +33,7 @@
 ;--------------------------------
 ; Version Information
 
-!define VERSION "1.1.559"
+!define VERSION "1.1.560"
 
 ;--------------------------------
 ; Version Information (Embedded)
